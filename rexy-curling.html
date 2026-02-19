@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rexy Curling</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: white;
+        }
+
+        .container {
+            text-align: center;
+            max-width: 1200px;
+            padding: 20px;
+        }
+
+        h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .subtitle {
+            font-size: 1.2em;
+            margin-bottom: 30px;
+            opacity: 0.9;
+        }
+
+        .game-area {
+            position: relative;
+            width: 800px;
+            height: 600px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            margin: 0 auto 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            cursor: none;
+            overflow: hidden;
+        }
+
+        .custom-cursor {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            pointer-events: none;
+            z-index: 1000;
+            transform: translate(-50%, -50%);
+            transition: transform 0.1s ease;
+        }
+
+        .custom-cursor.holding {
+            transform: translate(-50%, -50%) scale(0.9);
+            opacity: 0;
+        }
+
+        .stone {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            pointer-events: none;
+            z-index: 5;
+            transform: translate(-50%, -50%);
+        }
+
+        .stone.on-cursor {
+            z-index: 1001;
+        }
+
+        .point {
+            position: absolute;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 24px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .point-a {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .point-b {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            animation: pulse 2s ease-in-out infinite;
+            z-index: 2;
+        }
+
+        .score-rings {
+            position: absolute;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+        }
+
+        .score-ring {
+            position: absolute;
+            border-radius: 50%;
+            border: 2px solid rgba(79, 172, 254, 0.3);
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+        }
+
+        .score-ring.ring-100 {
+            width: 20px;
+            height: 20px;
+            border-color: rgba(0, 255, 0, 0.6);
+            border-width: 2px;
+        }
+
+        .score-ring.ring-75 {
+            width: 120px;
+            height: 120px;
+            border-color: rgba(255, 215, 0, 0.4);
+        }
+
+        .score-ring.ring-50 {
+            width: 180px;
+            height: 180px;
+            border-color: rgba(255, 165, 0, 0.3);
+        }
+
+        .score-ring.ring-25 {
+            width: 260px;
+            height: 260px;
+            border-color: rgba(255, 69, 0, 0.3);
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .puck {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background: radial-gradient(circle, #ffd700 0%, #ff8c00 100%);
+            border-radius: 50%;
+            border: 3px solid #ff6b00;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .trail {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: rgba(102, 126, 234, 0.6);
+            border-radius: 50%;
+            pointer-events: none;
+            animation: fadeTrail 6s ease-out forwards;
+            z-index: 10;
+        }
+
+        @keyframes fadeTrail {
+            to {
+                opacity: 0;
+                transform: scale(0.5);
+            }
+        }
+
+        .info-panel {
+            display: flex;
+            justify-content: space-around;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+
+        .info-item {
+            text-align: center;
+        }
+
+        .info-label {
+            font-size: 0.9em;
+            opacity: 0.8;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-size: 2em;
+            font-weight: bold;
+        }
+
+        .start-screen, .end-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(102, 126, 234, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-radius: 20px;
+            z-index: 100;
+        }
+
+        .start-screen h2, .end-screen h2 {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+        }
+
+        .start-screen p, .end-screen p {
+            font-size: 1.2em;
+            margin-bottom: 30px;
+            max-width: 600px;
+            line-height: 1.6;
+        }
+
+        button {
+            background: white;
+            color: #667eea;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.3em;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .reset-highscore {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 8px 16px;
+            font-size: 0.9em;
+            margin-top: 10px;
+            cursor: pointer;
+            border-radius: 20px;
+            transition: all 0.2s;
+        }
+
+        .reset-highscore:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .instructions {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            max-width: 600px;
+        }
+
+        .instructions li {
+            text-align: left;
+            margin-bottom: 10px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .round-complete {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 3em;
+            font-weight: bold;
+            color: #667eea;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        .round-complete.show {
+            animation: fadeInOut 1.5s ease-in-out;
+        }
+
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+            50% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(1.2); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Rexy Curling</h1>
+        <p class="subtitle">Precision wheel control game</p>
+
+        <div class="info-panel">
+            <div class="info-item">
+                <div class="info-label">Round</div>
+                <div class="info-value" id="round">1</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Score</div>
+                <div class="info-value" id="score">0</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Best</div>
+                <div class="info-value" id="highscore">0</div>
+                <button class="reset-highscore" onclick="resetHighscore()">Reset</button>
+            </div>
+        </div>
+
+        <div class="game-area" id="gameArea">
+            <!-- Hand cursor using emoji -->
+            <div class="custom-cursor" id="customCursor" style="font-size: 50px; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;">🫳</div>
+            
+            <!-- Curling stone (starts on point A) - using emoji -->
+            <div class="stone" id="stone" style="font-size: 40px; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">🥌</div>
+            
+            <div class="start-screen" id="startScreen">
+                <h2>Welcome to Rexy Curling! 🥌</h2>
+                <div class="instructions">
+                    <p><strong>How to Play:</strong></p>
+                    <ul>
+                        <li>Move your hand cursor over point A to pick up the stone</li>
+                        <li>Once holding the stone, move smoothly toward point B</li>
+                        <li>The stone drops if you stop for 1 second OR deviate more than 90° from your committed direction</li>
+                        <li>Get as close to point B as possible for maximum points</li>
+                        <li>Complete 10 rounds - smooth control is key!</li>
+                    </ul>
+                </div>
+                <button onclick="startGame()">Start Game</button>
+            </div>
+
+            <div class="end-screen hidden" id="endScreen">
+                <h2>Game Complete! 🎉</h2>
+                <p id="finalScore"></p>
+                <p id="highscoreMessage"></p>
+                <button onclick="restartGame()">Play Again</button>
+            </div>
+
+            <div class="point point-a" id="pointA">A</div>
+            <div class="score-rings" id="scoreRings">
+                <div class="score-ring ring-100"></div>
+                <div class="score-ring ring-75"></div>
+                <div class="score-ring ring-50"></div>
+                <div class="score-ring ring-25"></div>
+            </div>
+            <div class="point point-b" id="pointB">B</div>
+            <div class="round-complete" id="roundComplete"></div>
+        </div>
+    </div>
+
+    <script>
+        const gameArea = document.getElementById('gameArea');
+        const pointA = document.getElementById('pointA');
+        const pointB = document.getElementById('pointB');
+        const scoreRings = document.getElementById('scoreRings');
+        const startScreen = document.getElementById('startScreen');
+        const endScreen = document.getElementById('endScreen');
+        const roundDisplay = document.getElementById('round');
+        const scoreDisplay = document.getElementById('score');
+        const highscoreDisplay = document.getElementById('highscore');
+        const roundComplete = document.getElementById('roundComplete');
+        const customCursor = document.getElementById('customCursor');
+        const stone = document.getElementById('stone');
+
+        let gameState = {
+            round: 1,
+            score: 0,
+            highscore: localStorage.getItem('rexyHighscore') || 0,
+            isPlaying: false,
+            lastX: 0,
+            lastY: 0,
+            lastTime: 0,
+            lastMoveTime: 0,
+            velocityX: 0,
+            velocityY: 0,
+            puckDropped: false,
+            holdingStone: false,
+            stoneX: 0,
+            stoneY: 0,
+            inSafeZone: true,
+            safeZoneRadius: 80,
+            stoppedTime: null,
+            checkInterval: null,
+            committedDirectionX: 0,
+            committedDirectionY: 0,
+            hasCommittedDirection: false
+        };
+
+        highscoreDisplay.textContent = gameState.highscore;
+
+        // Continuous check for stopped cursor
+        function startStopCheck() {
+            if (gameState.checkInterval) {
+                clearInterval(gameState.checkInterval);
+            }
+            gameState.checkInterval = setInterval(() => {
+                if (gameState.isPlaying && gameState.holdingStone && !gameState.puckDropped && !gameState.inSafeZone) {
+                    const now = Date.now();
+                    const timeSinceLastMove = now - gameState.lastMoveTime;
+                    
+                    // If no movement for 1000ms (1 second), drop the stone
+                    // High tolerance for super slow movement where events are infrequent
+                    if (timeSinceLastMove > 1000) {
+                        dropPuck(gameState.stoneX, gameState.stoneY);
+                    }
+                }
+            }, 50); // Check every 50ms
+        }
+
+        function stopStopCheck() {
+            if (gameState.checkInterval) {
+                clearInterval(gameState.checkInterval);
+                gameState.checkInterval = null;
+            }
+        }
+
+        // Update custom cursor position
+        gameArea.addEventListener('mousemove', (e) => {
+            const rect = gameArea.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            customCursor.style.left = x + 'px';
+            customCursor.style.top = y + 'px';
+        });
+
+        function startGame() {
+            startScreen.classList.add('hidden');
+            gameState.round = 1;
+            gameState.score = 0;
+            gameState.isPlaying = true;
+            updateDisplay();
+            setupRound();
+            startStopCheck();
+        }
+
+        function restartGame() {
+            endScreen.classList.add('hidden');
+            startGame();
+        }
+
+        function resetHighscore() {
+            gameState.highscore = 0;
+            localStorage.removeItem('rexyHighscore');
+            highscoreDisplay.textContent = '0';
+        }
+
+        function setupRound() {
+            gameState.puckDropped = false;
+            gameState.holdingStone = false;
+            gameState.inSafeZone = true;
+            gameState.stoppedTime = null;
+            gameState.committedDirectionX = 0;
+            gameState.committedDirectionY = 0;
+            gameState.hasCommittedDirection = false;
+            customCursor.classList.remove('holding');
+            stone.classList.remove('on-cursor');
+            
+            // Clear any existing pucks and trails
+            document.querySelectorAll('.puck, .trail').forEach(el => el.remove());
+
+            // Random positions for A and B
+            const areaRect = gameArea.getBoundingClientRect();
+            const margin = 60;
+            
+            const aX = margin + Math.random() * (800 - margin * 2 - 60);
+            const aY = margin + Math.random() * (600 - margin * 2 - 60);
+            
+            let bX, bY, distance;
+            do {
+                bX = margin + Math.random() * (800 - margin * 2 - 60);
+                bY = margin + Math.random() * (600 - margin * 2 - 60);
+                distance = Math.sqrt(Math.pow(bX - aX, 2) + Math.pow(bY - aY, 2));
+            } while (distance < 400); // Ensure minimum distance of half the window width
+
+            pointA.style.left = aX + 'px';
+            pointA.style.top = aY + 'px';
+            pointB.style.left = bX + 'px';
+            pointB.style.top = bY + 'px';
+
+            // Position score rings centered on B (B is now 60px)
+            const bCenterX = bX + 30; // Center of point B (60px wide / 2)
+            const bCenterY = bY + 30;
+            scoreRings.style.left = bCenterX + 'px';
+            scoreRings.style.top = bCenterY + 'px';
+
+            // Position stone on point A
+            gameState.stoneX = aX + 30; // Center of point A
+            gameState.stoneY = aY + 30;
+            stone.style.left = gameState.stoneX + 'px';
+            stone.style.top = gameState.stoneY + 'px';
+
+            gameState.lastX = 0;
+            gameState.lastY = 0;
+            gameState.lastTime = 0;
+            gameState.velocityX = 0;
+            gameState.velocityY = 0;
+        }
+
+        gameArea.addEventListener('mousemove', (e) => {
+            if (!gameState.isPlaying || gameState.puckDropped) return;
+
+            const rect = gameArea.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const now = Date.now();
+            
+            // Update last move time for stop detection
+            gameState.lastMoveTime = now;
+
+            // Get point A center position
+            const aRect = pointA.getBoundingClientRect();
+            const gameRect = gameArea.getBoundingClientRect();
+            const aCenterX = aRect.left - gameRect.left + aRect.width / 2;
+            const aCenterY = aRect.top - gameRect.top + aRect.height / 2;
+
+            // Check if hovering over point A to pick up stone
+            if (!gameState.holdingStone) {
+                const distanceFromA = Math.sqrt(Math.pow(x - aCenterX, 2) + Math.pow(y - aCenterY, 2));
+                
+                // Only pick up when directly over point A (smaller radius)
+                if (distanceFromA < 35) {
+                    gameState.holdingStone = true;
+                    customCursor.classList.add('holding');
+                    stone.classList.add('on-cursor');
+                    gameState.lastX = x;
+                    gameState.lastY = y;
+                    gameState.lastTime = now;
+                }
+                return;
+            }
+
+            // Stone is being held - update its position to follow cursor EXACTLY
+            gameState.stoneX = x;
+            gameState.stoneY = y;
+            stone.style.left = x + 'px';
+            stone.style.top = y + 'px';
+
+            // Check if still in safe zone around A
+            const distanceFromA = Math.sqrt(Math.pow(x - aCenterX, 2) + Math.pow(y - aCenterY, 2));
+            const wasInSafeZone = gameState.inSafeZone;
+            gameState.inSafeZone = distanceFromA < gameState.safeZoneRadius;
+
+            // Create trail
+            const trail = document.createElement('div');
+            trail.className = 'trail';
+            trail.style.left = x + 'px';
+            trail.style.top = y + 'px';
+            gameArea.appendChild(trail);
+            setTimeout(() => trail.remove(), 6000);
+
+            if (gameState.lastTime > 0) {
+                const dt = (now - gameState.lastTime) / 1000;
+                if (dt > 0) {
+                    const newVelocityX = (x - gameState.lastX) / dt;
+                    const newVelocityY = (y - gameState.lastY) / dt;
+
+                    // When leaving safe zone, commit to a direction
+                    if (wasInSafeZone && !gameState.inSafeZone && !gameState.hasCommittedDirection) {
+                        const speed = Math.sqrt(newVelocityX * newVelocityX + newVelocityY * newVelocityY);
+                        if (speed > 1) { // Accept almost any movement speed
+                            // Commit to this direction - it will NEVER change
+                            gameState.committedDirectionX = newVelocityX;
+                            gameState.committedDirectionY = newVelocityY;
+                            gameState.hasCommittedDirection = true;
+                        }
+                    }
+
+                    // Check for direction change if OUTSIDE safe zone AND have committed direction
+                    if (!gameState.inSafeZone && gameState.hasCommittedDirection) {
+                        const currentSpeed = Math.sqrt(newVelocityX * newVelocityX + newVelocityY * newVelocityY);
+                        
+                        // Only check if moving at any speed above 1
+                        if (currentSpeed > 1) {
+                            const committedSpeed = Math.sqrt(gameState.committedDirectionX * gameState.committedDirectionX + 
+                                                             gameState.committedDirectionY * gameState.committedDirectionY);
+                            
+                            const dotProduct = gameState.committedDirectionX * newVelocityX + 
+                                             gameState.committedDirectionY * newVelocityY;
+                            const cosAngle = dotProduct / (committedSpeed * currentSpeed);
+                            
+                            // cos(90°) = 0
+                            if (cosAngle < 0) {
+                                dropPuck(x, y);
+                                return;
+                            }
+                        }
+                    }
+
+                    gameState.velocityX = newVelocityX;
+                    gameState.velocityY = newVelocityY;
+                }
+            }
+
+            gameState.lastX = x;
+            gameState.lastY = y;
+            gameState.lastTime = now;
+        });
+
+        function dropPuck(x, y) {
+            if (gameState.puckDropped) return;
+            gameState.puckDropped = true;
+            gameState.holdingStone = false;
+            customCursor.classList.remove('holding');
+
+            // Stone stays where it dropped
+            stone.classList.remove('on-cursor');
+
+            // Calculate distance to B
+            const bRect = pointB.getBoundingClientRect();
+            const gameRect = gameArea.getBoundingClientRect();
+            const bCenterX = bRect.left - gameRect.left + bRect.width / 2;
+            const bCenterY = bRect.top - gameRect.top + bRect.height / 2;
+            
+            const distance = Math.sqrt(Math.pow(x - bCenterX, 2) + Math.pow(y - bCenterY, 2));
+            
+            // Exponential scoring
+            // Within 10px (center): 100 points
+            // 10-30px (on B circle): 80-99 points (linear)
+            // Beyond 30px: exponential drop-off
+            let roundScore;
+            if (distance <= 10) {
+                // Perfect shot - dead center
+                roundScore = 100;
+            } else if (distance <= 30) {
+                // On the B circle - linear interpolation 100 to 80
+                roundScore = Math.round(100 - ((distance - 10) / 20) * 20);
+            } else if (distance <= 60) {
+                // Exponential drop from 80 to ~40
+                roundScore = Math.round(80 * Math.exp(-(distance - 30) / 30));
+            } else if (distance <= 90) {
+                // Exponential drop from ~40 to ~15
+                roundScore = Math.round(40 * Math.exp(-(distance - 60) / 25));
+            } else if (distance <= 130) {
+                // Exponential drop from ~15 to ~5
+                roundScore = Math.round(15 * Math.exp(-(distance - 90) / 30));
+            } else {
+                // Beyond 130px: drops to near 0
+                roundScore = Math.max(0, Math.round(5 * Math.exp(-(distance - 130) / 50)));
+            }
+            
+            gameState.score += roundScore;
+
+            // Show round score
+            roundComplete.textContent = '+' + roundScore;
+            roundComplete.classList.add('show');
+            setTimeout(() => roundComplete.classList.remove('show'), 1500);
+
+            updateDisplay();
+
+            setTimeout(() => {
+                if (gameState.round < 10) {
+                    gameState.round++;
+                    updateDisplay();
+                    setupRound();
+                } else {
+                    endGame();
+                }
+            }, 2000);
+        }
+
+        function updateDisplay() {
+            roundDisplay.textContent = gameState.round;
+            scoreDisplay.textContent = gameState.score;
+        }
+
+        function endGame() {
+            gameState.isPlaying = false;
+            stopStopCheck();
+            
+            const finalScoreText = document.getElementById('finalScore');
+            const highscoreMessage = document.getElementById('highscoreMessage');
+            
+            finalScoreText.textContent = `Your score: ${gameState.score}`;
+            
+            if (gameState.score > gameState.highscore) {
+                gameState.highscore = gameState.score;
+                localStorage.setItem('rexyHighscore', gameState.highscore);
+                highscoreDisplay.textContent = gameState.highscore;
+                highscoreMessage.textContent = '🏆 New High Score! 🏆';
+            } else {
+                highscoreMessage.textContent = `High Score: ${gameState.highscore}`;
+            }
+
+            endScreen.classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
